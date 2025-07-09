@@ -28,16 +28,62 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext zlib1g-dev swig unzip time rsync
 
-      - name: Update and install feeds
+      - name: 添加 python3-netifaces 包
+        run: |
+          mkdir -p openwrt/feeds/packages/lang/python/python3-netifaces
+          cat << 'EOF' > openwrt/feeds/packages/lang/python/python3-netifaces/Makefile
+                include \$(TOPDIR)/rules.mk
+                include \$(INCLUDE_DIR)/package.mk
+                \$(call include_mk, python3-package.mk)
+                
+                PKG_NAME:=netifaces
+                PKG_VERSION:=0.11.0
+                PKG_RELEASE:=1
+                PYPI_NAME:=netifaces
+                PKG_HASH:=skip
+                
+                PKG_SOURCE:=netifaces-\$(PKG_VERSION).tar.gz
+                PKG_SOURCE_URL:=https://files.pythonhosted.org/packages/source/n/netifaces/
+                
+                PKG_BUILD_DIR:=\$(BUILD_DIR)/\$(BUILD_LANG)/\$(PKG_NAME)-\$(PKG_VERSION)
+                
+                PKG_LICENSE:=MIT
+                PKG_LICENSE_FILES:=LICENSE
+                
+                include \$(INCLUDE_DIR)/package.mk
+                
+                define Package/python3-netifaces
+                  SECTION:=lang
+                  CATEGORY:=Languages
+                  SUBMENU:=Python
+                  TITLE:=netifaces
+                  URL:=https://alastairs-place.net/projects/netifaces/
+                  DEPENDS:=+python3
+                endef
+                
+                define Package/python3-netifaces/description
+                  Portable access to network interface information in Python.
+                endef
+                
+                \$(eval \$(call Py3Package,python3-netifaces))
+                \$(eval \$(call BuildPackage,python3-netifaces))
+                \$(eval \$(call BuildPackage,python3-netifaces-src))
+                EOF
+
+
+      - name: Update and install feeds（含 python3-netifaces）
         run: |
           cd openwrt
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          ./scripts/feeds install python3-netifaces
+
       - name: 查看当前 .config 配置
         run: |
           cd openwrt
           echo "当前使用的 .config 内容如下："
           cat .config
+
       - name: Build firmware
         run: |
           cd openwrt
